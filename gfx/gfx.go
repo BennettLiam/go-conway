@@ -73,21 +73,39 @@ func InitOpenGL() uint32 {
 	return prog
 }
 
-// MakeVao initializes and returns a vertex array from the points provided.
-func MakeVao(points []float32) uint32 {
+// CreateBatchObjects creates a VAO and VBO meant for dynamic updates
+func CreateBatchObjects() (uint32, uint32) {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, 4*len(points), gl.Ptr(points), gl.STATIC_DRAW)
 
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
 	gl.BindVertexArray(vao)
-	gl.EnableVertexAttribArray(0)
+
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	gl.EnableVertexAttribArray(0)
 	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 0, nil)
 
-	return vao
+	return vao, vbo
+}
+
+// UpdateBatch uploads the new vertex data to the GPU
+func UpdateBatch(vbo uint32, points []float32) {
+	if len(points) == 0 {
+		return
+	}
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	// GL_DYNAMIC_DRAW tells the driver we will change this data often
+	gl.BufferData(gl.ARRAY_BUFFER, 4*len(points), gl.Ptr(points), gl.DYNAMIC_DRAW)
+}
+
+// DrawBatch performs the single draw call
+func DrawBatch(vao uint32, vertexCount int32) {
+	if vertexCount == 0 {
+		return
+	}
+	gl.BindVertexArray(vao)
+	gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
 }
 
 func compileShader(source string, shaderType uint32) (uint32, error) {
